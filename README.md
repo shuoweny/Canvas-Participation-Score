@@ -1,5 +1,5 @@
 # SWEN900014 project: PA
-This is the team project to calculate the student participation score at canvas. 
+This is the team project to calculate the student participation score at canvas. The new CICD pipeline will be developed in future.
 
 ## Team Structure
 
