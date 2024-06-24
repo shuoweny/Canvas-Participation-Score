@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.swen90014.paplatypusbackend.dao.ScoreDao">
+    <!-- Update participation_score based on conditions -->
+    <update id="setParticipationScoreByComplete">
+        UPDATE score
+        SET participation_score_complete = CASE
+                WHEN (score IS NOT NULL AND score != 0) OR (entered_score IS NOT NULL AND entered_score != 0) THEN 100
+                WHEN (score IS NULL OR score = 0) AND (entered_score IS NULL OR entered_score = 0) THEN 0
+                ELSE 0
+            END
+        WHERE course_id = #{courseId}
+    </update>
+
+    <update id="setParticipationScoreByScore">
+        UPDATE score
+        SET participation_score_weight = ROUND(sub.new_participation_score, 2)
+            FROM (
+    SELECT s.id,
+       CASE
+            WHEN s.score IS NOT NULL
+                AND a.points_possible = 0
+                AND COALESCE(a.participation_weighting, default_participation_weighting) IS NOT NULL
+           THEN 0
+           WHEN s.entered_score IS NOT NULL
+                AND a.points_possible = 0
+                AND COALESCE(a.participation_weighting, default_participation_weighting) IS NOT NULL
+           THEN 0
+           WHEN s.score IS NOT NULL
+                AND a.points_possible IS NOT NULL
+                AND COALESCE(a.participation_weighting, default_participation_weighting) IS NOT NULL
+           THEN (COALESCE(a.participation_weighting, default_participation_weighting) / a.points_possible) * s.score
+           WHEN s.entered_score IS NOT NULL
+                AND a.points_possible IS NOT NULL
+                AND COALESCE(a.participation_weighting, default_participation_weighting) IS NOT NULL
+           THEN (COALESCE(a.participation_weighting, default_participation_weighting) / a.points_possible) * s.entered_score
+           ELSE NULL
+       END AS new_participation_score
+FROM score s
+INNER JOIN assignment a ON s.assignment_id = a.id
+WHERE s.course_id = #{courseId}
+            ) AS sub
+        WHERE score.id = sub.id;
+    </update>
+
+
+
+
+
+    <resultMap id="ExcelDTOResultMap" type="com.swen90014.paplatypusbackend.dto.ExcelDTO">
+        <result property="participationScore" column="participation_score"/>
+        <result property="studentName" column="stuname"/>
+        <result property="userId" column="sid"/>
+        <result property="assignmentName" column="assname"/>
+    </resultMap>
+
+    <resultMap id="getPersonChartData" type="com.swen90014.paplatypusbackend.dto.PersonalChartDTO">
+        <result property="completeState" column="compelete_state"/>
+    </resultMap>
+
+    <select id="getExcelDTO"  resultMap="ExcelDTOResultMap">
+        SELECT
+            CASE
+                WHEN assignment.method = 'weight' THEN score.participation_score_weight
+                WHEN assignment.method = 'complete' THEN score.participation_score_complete
+                WHEN assignment.method IS NULL AND assignment.default_method = 'weight' THEN score.participation_score_weight
+                ELSE score.participation_score_complete
+                END AS participation_score,
+            student.name AS stuname,
+            student.id AS sid,
+            assignment.name AS assname
+        FROM
+            score
+        INNER JOIN
+            assignment ON score.assignment_id = assignment.id
+        INNER JOIN
+            student ON student.id = score.user_id
+        WHERE
+            score.course_id = #{courseId}
+        ORDER BY
+            assignment.type
+    </select>
+
+    <select id="getPersonChartData" resultMap="getPersonChartData">
+        SELECT
+            CASE
+                WHEN (score.score IS NOT NULL AND score.score != 0) OR (score.entered_score IS NOT NULL AND score.entered_score != 0) THEN 0
+                WHEN (CURRENT_TIMESTAMP &lt; assignment.lock_at) THEN 1
+                ELSE 2
+            END AS compelete_state
+        FROM
+            score
+        INNER JOIN
+            assignment ON assignment.id = score.assignment_id
+        WHERE
+            score.course_id = #{courseId} AND score.user_id = #{studentId}
+    </select>
+
+    <resultMap id="getSubjectChartData" type="com.swen90014.paplatypusbackend.dto.ChartDTO">
+        <result property="name" column="name"/>
+        <result property="compelete_state" column="compelete_state"/>
+    </resultMap>
+
+    <select id="getSubjectChartData" resultMap="getSubjectChartData">
+        SELECT assignment.name,
+            CASE
+                WHEN (score.score IS NOT NULL AND score.score != 0) OR (score.entered_score IS NOT NULL AND score.entered_score != 0) THEN 0
+                WHEN (CURRENT_TIMESTAMP &lt; assignment.lock_at) THEN 1
+                ELSE 2
+            END AS compelete_state
+        FROM
+            score
+        INNER JOIN
+            assignment ON assignment.id = score.assignment_id
+        WHERE score.course_id = #{courseId}
+    </select>
+
+</mapper>

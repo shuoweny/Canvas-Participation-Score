@@ -1,0 +1,43 @@
+server:
+  port: 80
+spring:
+#  main:
+#    web-application-type: none
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: paplatypus90014@gmail.com
+    password: atli epyo lwpx ztyh
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://database-ysw.c1amkayqat05.ap-southeast-2.rds.amazonaws.com/ysw
+    username: postgres
+    password: Yushuo21
+    druid:
+      initial-size: 8
+      min-idle: 5
+      max-active: 10
+      query-timeout: 6000
+      transaction-query-timeout: 6000
+      remove-abandoned-timeout: 1800
+      filters: stat,config
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+    mapper-locations: classpath*:com/swen90014/paplatypusbackend/dao/*.xml
+
+canvas:
+  domain: https://unimelb-dev.instructure.com/api/v1
+  access:
+    token: 14228~zKW30HQ3x9om5L3z6zV9JEBL5Hvp8KFUHNg7l5rTHvSTwjUgwgpdzpV814xlOMC8
+
+
